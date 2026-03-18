@@ -79,6 +79,8 @@ def validate_skill_dir(skill_dir: Path) -> list[str]:
         for prefix in ("scripts/", "references/", "assets/"):
             if not code_span.startswith(prefix):
                 continue
+            if is_template:
+                continue
             ref_path = skill_dir / code_span
             if not ref_path.exists():
                 errors.append(f"{skill_md}: referenced path not found: {code_span}")
