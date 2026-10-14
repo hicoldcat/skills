@@ -24,7 +24,7 @@ FAIL 项（全部通过才返回退出码 0）:
   9. 儿童吸引力分析存在
 
 WARN 项（仅供提示，不阻断交付）:
-  - 英文旁白词数超出 [min, max]（默认 65–80）—— 原规范已将 65–80 降为参考范围，
+  - 英文旁白词数超出 [min, max]（默认 60–70）—— 原规范已将 60–70 降为参考范围，
     不再作为硬性限制
   - 文档中出现「第三部分」等额外章节 —— 规范要求只保留第一部分与第二部分
 
@@ -283,7 +283,7 @@ def check_topic(num, fields, zh_kw, en_kw, lo, hi, rep: Report):
     rep.add(zh_kw in zh_title, scope, f"中文标题含连续「{zh_kw}」")
     rep.add(en_kw.lower() in en_title.lower(), scope, f"英文标题含连续「{en_kw}」")
 
-    # 英文旁白词数：65–80 为参考区间，越界只提示不阻断
+    # 英文旁白词数：60–70 为参考区间，越界只提示不阻断
     n = count_words(fields["en_vo"])
     if lo <= n <= hi:
         rep.add(True, scope, f"英文旁白 {n} 词（参考区间 {lo}–{hi}）")
@@ -363,10 +363,10 @@ def main(argv=None) -> int:
     ap.add_argument("--name-prefix", default=None,
                     help="文件名前缀（默认取 --zh-keyword），规范为 `<主题>-<YYYYMMDDHHmmss>.md`")
     ap.add_argument("--topics", type=int, default=10, help="要求的选题数量（默认 10）")
-    ap.add_argument("--min", dest="lo", type=int, default=65,
-                    help="英文旁白参考词数下限（默认 65；超出仅 WARN，不阻断）")
-    ap.add_argument("--max", dest="hi", type=int, default=80,
-                    help="英文旁白参考词数上限（默认 80；超出仅 WARN，不阻断）")
+    ap.add_argument("--min", dest="lo", type=int, default=60,
+                    help="英文旁白参考词数下限（默认 60；超出仅 WARN，不阻断）")
+    ap.add_argument("--max", dest="hi", type=int, default=70,
+                    help="英文旁白参考词数上限（默认 70；超出仅 WARN，不阻断）")
     ap.add_argument("--strict-words", action="store_true",
                     help="把词数越界从 WARN 升级为 FAIL（默认关闭）")
     args = ap.parse_args(argv)

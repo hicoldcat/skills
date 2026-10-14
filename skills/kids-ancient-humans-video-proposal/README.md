@@ -2,7 +2,7 @@
 
 Generate a complete **10-topic kids' science short-video proposal** about Ancient Humans —
 each topic with bilingual titles, an English voiceover plus Chinese translation
-(65–80 words is a **guideline, not a hard limit**), social posts and hashtags for
+(60–70 words is a **guideline, not a hard limit**), social posts and hashtags for
 Douyin / Xiaohongshu / X / YouTube Shorts, and a one-line child-appeal rationale.
 
 Output is a real `.md` file that must pass the bundled validator before delivery.
@@ -41,14 +41,14 @@ Useful flags:
 | `--en-keyword` | `Ancient Humans` | Contiguous keyword required in every English title |
 | `--name-prefix` | value of `--zh-keyword` | Expected filename prefix (spec: `<theme>-<YYYYMMDDHHmmss>.md`) |
 | `--topics` | `10` | Required number of topic sections |
-| `--min` / `--max` | `65` / `80` | **Reference** voiceover word-count band (out-of-band ⇒ WARN only) |
+| `--min` / `--max` | `60` / `70` | **Reference** voiceover word-count band (out-of-band ⇒ WARN only) |
 | `--strict-words` | off | Escalate out-of-band word counts from WARN to FAIL |
 
 ## Results: PASS / WARN / FAIL
 
 - **PASS** — check satisfied
 - **WARN** — advisory only, does not block delivery. Raised when an English voiceover falls
-  outside the 65–80 reference band, or when the document contains an extra section such as
+  outside the 60–70 reference band, or when the document contains an extra section such as
   「第三部分」 (the spec keeps only Part 1 and Part 2 in the delivered file)
 - **FAIL** — must be fixed
 
@@ -68,7 +68,7 @@ FAIL-level:
 
 WARN-level:
 
-- English voiceover outside the 65–80 reference band
+- English voiceover outside the 60–70 reference band
 - Document contains an extra section beyond Part 1 / Part 2
 
 Word counting rule (fixed, so results are reproducible): strip Markdown marks, split on
