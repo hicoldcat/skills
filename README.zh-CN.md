@@ -42,23 +42,23 @@ python skills/random-image-placeholder/scripts/picsum.py download --seed avatar-
 
 ### kids-ancient-humans-video-proposal
 
-围绕「古代人类」主题，一次性生成**完整的 10 个儿童科普短视频选题包**——中英双语标题、65–80 词英文旁白 + 中文译文、抖音/小红书/X/YouTube Shorts 社媒文案与话题标签，以及每个选题的儿童吸引力分析。产出为一份 Markdown 文件，交付前必须通过自带校验脚本。主题与中英关键词均为参数，同一套流程可迁移到其他科普主题。
+围绕「古代人类」主题，一次性生成**完整的 10 个儿童科普短视频选题包**——中英双语标题、英文旁白（65–80 词为参考区间，非硬性）+ 中文译文、抖音/小红书/X/YouTube Shorts 社媒文案与话题标签，以及每个选题的儿童吸引力分析。产出为一份 Markdown 文件，交付前必须通过自带校验脚本。主题与中英关键词均为参数，同一套流程可迁移到其他科普主题。
 
 **适用场景：**
 
 - 需要儿童科普短视频选题、脚本，或中英双语旁白脚本
 - 需要抖音 / 小红书 / YouTube Shorts / X 的社媒文案与话题标签
 - 主题为 古代人类 / Ancient Humans 的儿童科普内容
-- 需要"10 个选题"且对每篇脚本有严格字数要求
+- 需要"10 个选题"并配中英双语旁白的场景
 
 **示例：**
 
 ```bash
-python skills/kids-ancient-humans-video-proposal/scripts/validate_script_doc.py "古代人类-workbuddy-20261014213045.md" --zh-keyword 古代人类 --en-keyword "Ancient Humans"
+python skills/kids-ancient-humans-video-proposal/scripts/validate_script_doc.py "古代人类-20261014213045.md" --zh-keyword 古代人类 --en-keyword "Ancient Humans"
 ```
 
 ```bash
-python skills/kids-ancient-humans-video-proposal/scripts/validate_script_doc.py "海洋生物-workbuddy-20261014213045.md" --zh-keyword 海洋生物 --en-keyword "Ocean Animals" --min 65 --max 80
+python skills/kids-ancient-humans-video-proposal/scripts/validate_script_doc.py "海洋生物-20261014213045.md" --zh-keyword 海洋生物 --en-keyword "Ocean Animals"
 ```
 
 相关文档：

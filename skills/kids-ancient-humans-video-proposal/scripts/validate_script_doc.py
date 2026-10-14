@@ -4,19 +4,29 @@
 
 用法::
 
-    python validate_script_doc.py 古代人类-workbuddy-20261014213045.md \
+    python validate_script_doc.py 古代人类-20261014213045.md \
         --zh-keyword 古代人类 --en-keyword "Ancient Humans"
 
-校验项（全部通过才返回退出码 0）:
-  1. 文件名符合 ``<主题>-<平台>-<YYYYMMDDHHmmss>.md``，时间戳可解析
+三级结论:
+  PASS  合格
+  WARN  参考提示 —— 不影响退出码
+  FAIL  必须修复
+
+FAIL 项（全部通过才返回退出码 0）:
+  1. 文件名符合 ``<主题>-<YYYYMMDDHHmmss>.md``（不含平台名），时间戳可解析
   2. 选题块恰好 N 个（默认 10）且序号连续
   3. 总览表格行数与标题关键词
-  4. 每个选题：中文/英文标题含**连续**关键词
-  5. 英文旁白词数在 [min, max]（默认 65–80），且 ``Word count`` 标注与实测一致
+  4. 每个选题必备字段齐全；中文/英文标题含**连续**关键词
+  5. 若填写了「单词数量（参考）」，标注值与实测值一致（该行本身可选）
   6. 中文旁白存在且为中文
   7. 中文贴文 30–80 汉字；英文贴文 20–50 词
   8. 中文话题标签 5–8 个；英文话题标签 3–6 个
   9. 儿童吸引力分析存在
+
+WARN 项（仅供提示，不阻断交付）:
+  - 英文旁白词数超出 [min, max]（默认 65–80）—— 原规范已将 65–80 降为参考范围，
+    不再作为硬性限制
+  - 文档中出现「第三部分」等额外章节 —— 规范要求只保留第一部分与第二部分
 
 单词统计口径（与 content-spec 一致）:
   去掉 Markdown 标记后按空白切分，含字母或数字的 token 计 1 词；
@@ -76,7 +86,7 @@ FIELD_DEFS = [
     ("en_title", ["englishtitle"]),
     ("knowledge", ["核心知识点"]),
     ("en_vo", ["englishvoiceover"]),
-    ("word_count", ["wordcount"]),
+    ("word_count", ["wordcount", "单词数量"]),
     ("zh_vo", ["中文旁白"]),
     ("zh_post", ["中文贴文"]),
     ("en_post", ["englishpost"]),
@@ -90,7 +100,7 @@ FIELD_LABELS = {
     "en_title": "English Title",
     "knowledge": "核心知识点",
     "en_vo": "英文旁白",
-    "word_count": "Word count",
+    "word_count": "单词数量（参考）",
     "zh_vo": "中文旁白",
     "zh_post": "中文贴文",
     "en_post": "English Post",
@@ -99,8 +109,12 @@ FIELD_LABELS = {
     "appeal": "儿童吸引力分析",
 }
 
+# 可由作者决定是否填写的字段（缺失不算 FAIL）
+OPTIONAL_FIELDS = {"word_count"}
+
 TOPIC_RE = re.compile(r"^##\s*选题\s*(\d+)\s*[:：]")
-FILENAME_RE = re.compile(r"^(?P<theme>.+?)-(?P<platform>[A-Za-z0-9_]+)-(?P<ts>\d{14})\.md$")
+FILENAME_RE = re.compile(r"^(?P<theme>.+?)-(?P<ts>\d{14})\.md$")
+LEGACY_FILENAME_RE = re.compile(r"^(?P<theme>.+?)-(?P<platform>[A-Za-z0-9_]+)-(?P<ts>\d{14})\.md$")
 TABLE_ROW_RE = re.compile(r"^\|\s*(\d+)\s*\|([^|]*)\|([^|]*)\|")
 
 
@@ -174,33 +188,59 @@ def extract_fields(block_lines):
 # --------------------------------------------------------------------------- #
 
 
+PASS, WARN, FAIL = "PASS", "WARN", "FAIL"
+
+
 class Report:
     def __init__(self):
-        self.items = []  # (ok, scope, message)
+        self.items = []  # (level, scope, message)
 
     def add(self, ok: bool, scope: str, msg: str):
-        self.items.append((bool(ok), scope, msg))
+        self.add_level(PASS if ok else FAIL, scope, msg)
+
+    def warn(self, scope: str, msg: str):
+        self.add_level(WARN, scope, msg)
+
+    def add_level(self, level: str, scope: str, msg: str):
+        self.items.append((level, scope, msg))
 
     @property
     def failures(self):
-        return [i for i in self.items if not i[0]]
+        return [i for i in self.items if i[0] == FAIL]
+
+    @property
+    def warnings(self):
+        return [i for i in self.items if i[0] == WARN]
 
     def render(self) -> str:
         out = []
         last_scope = None
-        for ok, scope, msg in self.items:
+        for level, scope, msg in self.items:
             if scope != last_scope:
                 out.append(f"\n[{scope}]")
                 last_scope = scope
-            out.append(f"  {'PASS' if ok else 'FAIL'}  {msg}")
+            out.append(f"  {level:<4}  {msg}")
         return "\n".join(out)
 
 
-def check_filename(path: Path, rep: Report):
-    m = FILENAME_RE.match(path.name)
-    if not m:
-        rep.add(False, "文件名", f"不符合 `<主题>-<平台>-<YYYYMMDDHHmmss>.md`：{path.name}")
+def check_filename(path: Path, prefix, rep: Report):
+    """校验文件名符合 ``<主题>-<YYYYMMDDHHmmss>.md``（规范已去掉平台名）。"""
+    name = path.name
+
+    # 先识别「主题-平台-时间戳」旧格式，给出明确的迁移提示
+    legacy = LEGACY_FILENAME_RE.match(name)
+    if legacy:
+        rep.add(False, "文件名",
+                f"文件名含平台名「{legacy.group('platform')}」：{name}；"
+                f"规范要求 `<主题>-<YYYYMMDDHHmmss>.md`，不包含生成平台名称")
         return
+
+    m = FILENAME_RE.match(name)
+    if not m:
+        hint = "（主题名里不要带 `-` 和平台名）" if "-" in name else ""
+        rep.add(False, "文件名", f"不符合 `<主题>-<YYYYMMDDHHmmss>.md`：{name}{hint}")
+        return
+
     ts = m.group("ts")
     try:
         dt = datetime.strptime(ts, "%Y%m%d%H%M%S")
@@ -210,7 +250,11 @@ def check_filename(path: Path, rep: Report):
     if not (2000 <= dt.year <= 2100):
         rep.add(False, "文件名", f"时间戳年份异常：{dt.year}")
         return
-    rep.add(True, "文件名", f"{path.name}（主题={m.group('theme')} 平台={m.group('platform')} 时间={dt:%Y-%m-%d %H:%M:%S}）")
+    theme = m.group("theme")
+    if prefix and theme != prefix:
+        rep.add(False, "文件名", f"主题前缀「{theme}」与期望「{prefix}」不符")
+        return
+    rep.add(True, "文件名", f"{name}（主题={theme} 时间={dt:%Y-%m-%d %H:%M:%S}）")
 
 
 def check_overview(lines, zh_kw, en_kw, want, rep: Report):
@@ -228,8 +272,8 @@ def check_overview(lines, zh_kw, en_kw, want, rep: Report):
 def check_topic(num, fields, zh_kw, en_kw, lo, hi, rep: Report):
     scope = f"选题 {num}"
 
-    missing = [k for k in FIELD_LABELS if k not in fields]
-    rep.add(not missing, scope, "字段齐全" + (f"（缺失：{', '.join(FIELD_LABELS[k] for k in missing)}）" if missing else ""))
+    missing = [k for k in FIELD_LABELS if k not in fields and k not in OPTIONAL_FIELDS]
+    rep.add(not missing, scope, "必备字段齐全" + (f"（缺失：{', '.join(FIELD_LABELS[k] for k in missing)}）" if missing else ""))
     if missing:
         return
 
@@ -239,15 +283,22 @@ def check_topic(num, fields, zh_kw, en_kw, lo, hi, rep: Report):
     rep.add(zh_kw in zh_title, scope, f"中文标题含连续「{zh_kw}」")
     rep.add(en_kw.lower() in en_title.lower(), scope, f"英文标题含连续「{en_kw}」")
 
-    # 英文旁白词数
+    # 英文旁白词数：65–80 为参考区间，越界只提示不阻断
     n = count_words(fields["en_vo"])
-    rep.add(lo <= n <= hi, scope, f"英文旁白 {n} 词（要求 {lo}–{hi}）")
-    m = re.search(r"(\d+)", fields["word_count"])
-    if not m:
-        rep.add(False, scope, "Word count 行缺少数字")
+    if lo <= n <= hi:
+        rep.add(True, scope, f"英文旁白 {n} 词（参考区间 {lo}–{hi}）")
     else:
-        declared = int(m.group(1))
-        rep.add(declared == n, scope, f"Word count 标注 {declared} 与实测 {n} {'一致' if declared == n else '不一致'}")
+        rep.warn(scope, f"英文旁白 {n} 词，超出参考区间 {lo}–{hi}（不阻断交付，仅提示）")
+
+    # 词数标注：整行可选；一旦填写就必须与实测一致
+    if "word_count" in fields:
+        m = re.search(r"(\d+)", fields["word_count"])
+        if not m:
+            rep.add(False, scope, "「单词数量（参考）」行缺少数字")
+        else:
+            declared = int(m.group(1))
+            rep.add(declared == n, scope,
+                    f"词数标注 {declared} 与实测 {n} {'一致' if declared == n else '不一致'}")
 
     # 中文旁白
     zh_vo_cjk = count_cjk(fields["zh_vo"])
@@ -270,12 +321,12 @@ def check_topic(num, fields, zh_kw, en_kw, lo, hi, rep: Report):
     rep.add(len(appeal) >= 10 and count_cjk(appeal) >= 8, scope, "儿童吸引力分析为一句具体说明")
 
 
-def validate(path: Path, zh_kw: str, en_kw: str, want: int, lo: int, hi: int) -> Report:
+def validate(path: Path, zh_kw: str, en_kw: str, want: int, lo: int, hi: int, prefix=None) -> Report:
     rep = Report()
     text = path.read_text(encoding="utf-8")
     lines = text.splitlines()
 
-    check_filename(path, rep)
+    check_filename(path, prefix, rep)
 
     rep.add(len(text.strip()) > 0, "文件", f"文件大小 {path.stat().st_size} 字节")
 
@@ -289,7 +340,11 @@ def validate(path: Path, zh_kw: str, en_kw: str, want: int, lo: int, hi: int) ->
     for num, _heading, block_lines in blocks:
         check_topic(num, extract_fields(block_lines), zh_kw, en_kw, lo, hi, rep)
 
-    rep.add("第三部分" in text, "结构", "含「第三部分：最终质量检查」")
+    if "第三部分" in text:
+        rep.warn("结构", "文档含「第三部分」——规范要求交付文档只保留第一部分与第二部分"
+                         "（质量检查清单属执行者自检，不写入输出）")
+    else:
+        rep.add(True, "结构", "文档只含第一部分与第二部分")
     for marker in ("此处省略", "其余选题类似", "以下略"):
         rep.add(marker not in text, "结构", f"未出现省略式表述「{marker}」")
     return rep
@@ -305,9 +360,15 @@ def main(argv=None) -> int:
     ap.add_argument("md_path", help="待校验的 .md 文件路径")
     ap.add_argument("--zh-keyword", default="古代人类", help="中文标题必须含有的连续关键词")
     ap.add_argument("--en-keyword", default="Ancient Humans", help="英文标题必须含有的连续关键词")
+    ap.add_argument("--name-prefix", default=None,
+                    help="文件名前缀（默认取 --zh-keyword），规范为 `<主题>-<YYYYMMDDHHmmss>.md`")
     ap.add_argument("--topics", type=int, default=10, help="要求的选题数量（默认 10）")
-    ap.add_argument("--min", dest="lo", type=int, default=65, help="英文旁白最少词数（默认 65）")
-    ap.add_argument("--max", dest="hi", type=int, default=80, help="英文旁白最多词数（默认 80）")
+    ap.add_argument("--min", dest="lo", type=int, default=65,
+                    help="英文旁白参考词数下限（默认 65；超出仅 WARN，不阻断）")
+    ap.add_argument("--max", dest="hi", type=int, default=80,
+                    help="英文旁白参考词数上限（默认 80；超出仅 WARN，不阻断）")
+    ap.add_argument("--strict-words", action="store_true",
+                    help="把词数越界从 WARN 升级为 FAIL（默认关闭）")
     args = ap.parse_args(argv)
 
     path = Path(args.md_path)
@@ -315,17 +376,31 @@ def main(argv=None) -> int:
         print(f"FAIL  文件不存在：{path}")
         return 1
 
-    rep = validate(path, args.zh_keyword, args.en_keyword, args.topics, args.lo, args.hi)
+    prefix = args.name_prefix if args.name_prefix is not None else args.zh_keyword
+    rep = validate(path, args.zh_keyword, args.en_keyword, args.topics, args.lo, args.hi, prefix)
+
+    if args.strict_words:
+        rep.items = [
+            (FAIL, s, m.replace("（不阻断交付，仅提示）", "（--strict-words：已升级为 FAIL）"))
+            if (lv == WARN and "参考区间" in m) else (lv, s, m)
+            for lv, s, m in rep.items
+        ]
 
     print(f"=== 校验：{path.name} ===")
     print(rep.render())
 
     total = len(rep.items)
     fails = rep.failures
-    print(f"\n=== 结果：{total - len(fails)}/{total} 通过 ===")
+    warns = rep.warnings
+    print(f"\n=== 结果：{total - len(fails) - len(warns)} PASS / {len(warns)} WARN / {len(fails)} FAIL"
+          f"（共 {total} 项）===")
+    if warns:
+        print("参考提示（不阻断交付）：")
+        for _lv, scope, msg in warns:
+            print(f"  ~ [{scope}] {msg}")
     if fails:
         print("需要修复：")
-        for _ok, scope, msg in fails:
+        for _lv, scope, msg in fails:
             print(f"  - [{scope}] {msg}")
         print("\nVERDICT: FAIL")
         return 1
