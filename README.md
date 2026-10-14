@@ -40,6 +40,32 @@ Docs:
 - `skills/random-image-placeholder/README.md`
 - `skills/random-image-placeholder/SKILL.md`
 
+### kids-ancient-humans-video-proposal
+
+Generate a complete **10-topic kids' science short-video proposal** for the Ancient Humans theme — bilingual titles, a 65–80 word English voiceover plus Chinese translation, social posts and hashtags for Douyin / Xiaohongshu / X / YouTube Shorts, and a one-line child-appeal rationale per topic. Output is a Markdown file that must pass a bundled validator before delivery. The theme and its bilingual keywords are parameters, so the same workflow works for other science topics.
+
+**Use when:**
+
+- The user wants 儿童科普短视频 topics/scripts or 中英双语旁白脚本 (bilingual voiceover scripts)
+- You need 抖音 / 小红书 / YouTube Shorts / X social copy and hashtags
+- The topic is 古代人类 / Ancient Humans for a kids' science channel
+- The user asks for "10 video topics" with strict per-script word counts
+
+**Examples:**
+
+```bash
+python skills/kids-ancient-humans-video-proposal/scripts/validate_script_doc.py "古代人类-workbuddy-20261014213045.md" --zh-keyword 古代人类 --en-keyword "Ancient Humans"
+```
+
+```bash
+python skills/kids-ancient-humans-video-proposal/scripts/validate_script_doc.py "海洋生物-workbuddy-20261014213045.md" --zh-keyword 海洋生物 --en-keyword "Ocean Animals" --min 65 --max 80
+```
+
+Docs:
+
+- `skills/kids-ancient-humans-video-proposal/README.md`
+- `skills/kids-ancient-humans-video-proposal/SKILL.md`
+
 ## Installation 📦
 
 Two common ways:
