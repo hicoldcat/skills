@@ -66,6 +66,42 @@ Docs:
 - `skills/kids-ancient-humans-video-proposal/README.md`
 - `skills/kids-ancient-humans-video-proposal/SKILL.md`
 
+### idiom-fable-story-shorts
+
+Turn idioms and fables into **10 × 30-second English storytelling videos** — one story per
+video, told in **55–70 simple English words** (hard limit), with a Chinese translation, a
+3–5 word vocabulary card, and social posts + hashtags for Douyin / Xiaohongshu / X /
+YouTube Shorts. Each run produces a Markdown file that must pass a bundled validator
+before delivery.
+
+The point is **storytelling, not explaining**: a child who watches should be able to retell
+"who did what, and how it ended" — which is also how they learn what the idiom means.
+No science breakdown, no multi-episode split.
+
+**Use when:**
+
+- The user wants 成语 / 寓言 turned into English kids' videos (成语故事英语、寓言故事英语、英语启蒙故事)
+- You need 中英双语故事旁白 or 英语讲故事脚本 for children
+- You need 抖音 / 小红书 / YouTube Shorts / X social copy and hashtags for kids' stories
+- The user asks for "10 video topics" with bilingual voiceover scripts
+
+**Examples:**
+
+```bash
+python skills/idiom-fable-story-shorts/scripts/validate_script_doc.py \
+  "成语寓言-20261019102313.md" --name-prefix "成语寓言" --min 55 --max 70
+```
+
+```bash
+python skills/idiom-fable-story-shorts/scripts/validate_script_doc.py \
+  "狐狸-20261019102313.md" --name-prefix "狐狸" --min 55 --max 70
+```
+
+Docs:
+
+- `skills/idiom-fable-story-shorts/README.md`
+- `skills/idiom-fable-story-shorts/SKILL.md`
+
 ## Installation 📦
 
 Two common ways:

@@ -66,6 +66,36 @@ python skills/kids-ancient-humans-video-proposal/scripts/validate_script_doc.py 
 - `skills/kids-ancient-humans-video-proposal/README.md`
 - `skills/kids-ancient-humans-video-proposal/SKILL.md`
 
+### idiom-fable-story-shorts
+
+把成语和寓言做成 **10 条 30 秒英语讲故事短视频**——一条视频一个故事，用 **55–70 个简单英文单词**（硬性上限）讲完，配中文译文、3–5 个核心单词，以及抖音 / 小红书 / X / YouTube Shorts 的社媒文案与话题标签。每次产出一份 Markdown 文件，交付前必须通过自带校验脚本。
+
+重点在**讲故事，不在讲道理**：孩子看完能复述"谁做了什么、结果怎样"，也就懂了这个成语的意思。不做科学解读，也不把一个成语拆成多集。
+
+**适用场景：**
+
+- 想把成语 / 寓言做成儿童英语短视频（成语故事英语、寓言故事英语、英语启蒙故事）
+- 需要中英双语故事旁白，或给孩子的英语讲故事脚本
+- 需要儿童故事类内容的抖音 / 小红书 / YouTube Shorts / X 文案与话题标签
+- 需要"10 个选题"并配中英双语旁白的场景
+
+**示例：**
+
+```bash
+python skills/idiom-fable-story-shorts/scripts/validate_script_doc.py \
+  "成语寓言-20261019102313.md" --name-prefix "成语寓言" --min 55 --max 70
+```
+
+```bash
+python skills/idiom-fable-story-shorts/scripts/validate_script_doc.py \
+  "狐狸-20261019102313.md" --name-prefix "狐狸" --min 55 --max 70
+```
+
+相关文档：
+
+- `skills/idiom-fable-story-shorts/README.md`
+- `skills/idiom-fable-story-shorts/SKILL.md`
+
 ## 安装 📦
 
 常见有三种方式：
