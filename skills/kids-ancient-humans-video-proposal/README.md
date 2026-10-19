@@ -9,6 +9,14 @@ Output is a real `.md` file that must pass the bundled validator before delivery
 The theme and its bilingual keywords are parameters, so the same workflow transfers to
 other science topics.
 
+If the user names a specific sub-topic (e.g. "how did ancient people get through summer
+without air conditioning"), the set switches to **focused mode**: topic #1 must answer
+exactly that question, topics #2–10 stay inside the same cluster from different angles
+(mechanism / tools / shelter / body & clothing / food & water / daily rhythm / kids' view /
+myth-busting / then-vs-now / the cost), and nothing is allowed to drift into unrelated
+ancient-life scenes. Every title also needs a **hook** — contrast with the modern world,
+counter-intuition, concrete numbers, the cost of the trick — not a textbook table of contents.
+
 ## When to use
 
 Trigger when the request involves any of:
@@ -43,13 +51,15 @@ Useful flags:
 | `--topics` | `10` | Required number of topic sections |
 | `--min` / `--max` | `60` / `70` | **Reference** voiceover word-count band (out-of-band ⇒ WARN only) |
 | `--strict-words` | off | Escalate out-of-band word counts from WARN to FAIL |
+| `--topic-anchor` | empty | Comma-separated anchors distilled from the user's sub-topic. When given, topic #1 must hit one (**FAIL** if none), topics #2–10 that miss only WARN |
 
 ## Results: PASS / WARN / FAIL
 
 - **PASS** — check satisfied
 - **WARN** — advisory only, does not block delivery. Raised when an English voiceover falls
-  outside the 60–70 reference band, or when the document contains an extra section such as
-  「第三部分」 (the spec keeps only Part 1 and Part 2 in the delivered file)
+  outside the 60–70 reference band, when the document contains an extra section such as
+  「第三部分」 (the spec keeps only Part 1 and Part 2 in the delivered file), or — with
+  `--topic-anchor` — when topics #2–10 hit none of the anchors (likely drifting off-topic)
 - **FAIL** — must be fixed
 
 ## What the validator checks
@@ -65,6 +75,8 @@ FAIL-level:
 6. Chinese voiceover present; Chinese post 30–80 hanzi; English post 20–50 words
 7. Chinese hashtags 5–8; English hashtags 3–6
 8. Child-appeal rationale present; no elided sections
+9. With `--topic-anchor`: topic #1 hits at least one anchor (i.e. it actually answers the
+   user's sub-topic instead of a spin-off question)
 
 WARN-level:
 

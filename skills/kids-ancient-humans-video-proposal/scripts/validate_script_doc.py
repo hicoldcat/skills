@@ -22,11 +22,18 @@ FAIL 项（全部通过才返回退出码 0）:
   7. 中文贴文 30–80 汉字；英文贴文 20–50 词
   8. 中文话题标签 5–8 个；英文话题标签 3–6 个
   9. 儿童吸引力分析存在
+  10. 传了 ``--topic-anchor`` 时，选题 1 必须命中任一主题锚词
 
 WARN 项（仅供提示，不阻断交付）:
   - 英文旁白词数超出 [min, max]（默认 60–70）—— 原规范已将 60–70 降为参考范围，
     不再作为硬性限制
   - 文档中出现「第三部分」等额外章节 —— 规范要求只保留第一部分与第二部分
+  - 传了 ``--topic-anchor`` 时，选题 2–10 中有未命中任何锚词的 —— 提示可能发散过远
+
+主题锚词（``--topic-anchor``）:
+  用户点名了子主题（如「没有空调古人如何过夏」）时，由调用方从原话提炼 2–4 个锚词，
+  逗号分隔传入。脚本只做字面包含比对，不做语义判断；锚词应把同义说法一并列出
+  （如 ``夏天,暑,炎热,降温,避暑``），避免误杀贴题但换了说法的标题。
 
 单词统计口径（与 content-spec 一致）:
   去掉 Markdown 标记后按空白切分，含字母或数字的 token 计 1 词；
@@ -321,7 +328,38 @@ def check_topic(num, fields, zh_kw, en_kw, lo, hi, rep: Report):
     rep.add(len(appeal) >= 10 and count_cjk(appeal) >= 8, scope, "儿童吸引力分析为一句具体说明")
 
 
-def validate(path: Path, zh_kw: str, en_kw: str, want: int, lo: int, hi: int, prefix=None) -> Report:
+def check_topic_focus(blocks, anchors, rep: Report):
+    """用户指定子主题时的防跑偏检查。
+
+    选题 1 必须命中任一锚词（否则 FAIL —— 这是用户明确的硬要求）；
+    选题 2–10 未命中只提示（WARN），可能是发散过远，也可能是换了说法。
+    """
+    if not anchors or not blocks:
+        return
+
+    def _text(block_lines):
+        fields = extract_fields(block_lines)
+        return f"{fields.get('zh_title', '')} {fields.get('knowledge', '')}".strip()
+
+    texts = [(num, _text(block)) for num, _h, block in blocks]
+
+    num1, text1 = texts[0]
+    hit1 = [a for a in anchors if a in text1]
+    title1 = extract_fields(blocks[0][2]).get("zh_title", "").replace("\n", " ").strip()
+    rep.add(bool(hit1), f"选题 {num1}",
+            f"选题 1 命中主题锚词 {hit1 or '（无）'}：{title1[:40]}"
+            + ("" if hit1 else f"；锚词表={anchors}。若标题确已贴合用户主题，"
+                               f"把该说法补进 --topic-anchor 而不是改标题"))
+
+    missed = [num for num, text in texts[1:] if not any(a in text for a in anchors)]
+    if missed:
+        rep.warn("主题聚焦", f"选题 {missed} 未命中任何主题锚词 {anchors}，检查是否发散过远")
+    else:
+        rep.add(True, "主题聚焦", f"选题 2–{texts[-1][0]} 均命中主题锚词 {anchors}")
+
+
+def validate(path: Path, zh_kw: str, en_kw: str, want: int, lo: int, hi: int,
+             prefix=None, anchors=None) -> Report:
     rep = Report()
     text = path.read_text(encoding="utf-8")
     lines = text.splitlines()
@@ -339,6 +377,8 @@ def validate(path: Path, zh_kw: str, en_kw: str, want: int, lo: int, hi: int, pr
 
     for num, _heading, block_lines in blocks:
         check_topic(num, extract_fields(block_lines), zh_kw, en_kw, lo, hi, rep)
+
+    check_topic_focus(blocks, anchors, rep)
 
     if "第三部分" in text:
         rep.warn("结构", "文档含「第三部分」——规范要求交付文档只保留第一部分与第二部分"
@@ -369,6 +409,9 @@ def main(argv=None) -> int:
                     help="英文旁白参考词数上限（默认 70；超出仅 WARN，不阻断）")
     ap.add_argument("--strict-words", action="store_true",
                     help="把词数越界从 WARN 升级为 FAIL（默认关闭）")
+    ap.add_argument("--topic-anchor", default="",
+                    help="用户指定子主题时的主题锚词，逗号分隔（如 \"夏天,暑,炎热,降温,避暑\"）；"
+                         "提供后选题 1 必须命中任一锚词（否则 FAIL），选题 2–10 未命中仅 WARN")
     args = ap.parse_args(argv)
 
     path = Path(args.md_path)
@@ -377,7 +420,9 @@ def main(argv=None) -> int:
         return 1
 
     prefix = args.name_prefix if args.name_prefix is not None else args.zh_keyword
-    rep = validate(path, args.zh_keyword, args.en_keyword, args.topics, args.lo, args.hi, prefix)
+    anchors = [a.strip() for a in re.split(r"[,，、;；]", args.topic_anchor) if a.strip()]
+    rep = validate(path, args.zh_keyword, args.en_keyword, args.topics,
+                   args.lo, args.hi, prefix, anchors)
 
     if args.strict_words:
         rep.items = [
